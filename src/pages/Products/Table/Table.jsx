@@ -18,7 +18,7 @@ import { CSVLink } from "react-csv";
 import { UilExport, UilPen, UilTrash } from "@iconscout/react-unicons";
 
 const TableProduct = () => {
-  const userRole = localStorage.getItem("Role");
+  const userRole = localStorage.getItem("role");
   const isAdmin = userRole === "Admin";
   const displaySnackbar = (severity, message) => {
     setSnackbarSeverity(severity);

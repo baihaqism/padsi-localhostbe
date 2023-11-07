@@ -21,7 +21,6 @@ import Customers from "./pages/Customers/Customers";
 import Users from "./pages/Users/Users";
 import Products from "./pages/Products/Products";
 import Services from "./pages/Services/Services";
-import Test from "./pages/ScriptTest/Test";
 
 function App() {
   const userRole = localStorage.getItem("role");
@@ -105,7 +104,6 @@ function App() {
               </div>
             }
           />
-
           <Route
             path="/products"
             element={
@@ -120,43 +118,33 @@ function App() {
           <Route
             path="/services"
             element={
-              <div className="App">
-                <div className="AppGlass">
-                  <Sidebar />
-                  <Services />
+              userRole === "Admin" && token ? (
+                <div className="App">
+                  <div className="AppGlass">
+                    <Sidebar />
+                    <Services />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
             }
           />
           <Route
-            path="/test"
+            path="/users"
             element={
-              <div className="App">
-                <div className="AppGlass">
-                  <Sidebar />
-                  <Test />
-                </div>
-              </div>
-            }
-          />
-          {userRole === "Admin" && token ? (
-            <Route
-              path="/users"
-              element={
+              userRole === "Admin" && token ? (
                 <div className="App">
                   <div className="AppGlass">
                     <Sidebar />
                     <Users />
                   </div>
                 </div>
-              }
-            />
-          ) : (
-            <Route
-              path="/users"
-              element={<Navigate to="/dashboard" replace />}
-            />
-          )}
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
         </Route>
       </Routes>
     </Router>

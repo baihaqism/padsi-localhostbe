@@ -26,7 +26,7 @@ const db = mysql.createConnection({
 //   port: process.env.MYSQLPORT
 // });
 
-const secretKey = process.env.SECRET_KEY;
+const secretKey = "padsi211711428";
 
 db.connect((err) => {
   if (err) {

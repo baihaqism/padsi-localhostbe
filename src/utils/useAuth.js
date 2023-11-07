@@ -1,16 +1,16 @@
 // authGuard.js
 export const useAuth = () => {
-  const token = localStorage.getItem("token") // Get the token from local storage
+  const token = localStorage.getItem("token");
 
   if (token) {
-    return true
+    return true;
   } else {
-    return false
+    return false;
   }
-}
+};
 
 export const useUserRole = () => {
-  const role = localStorage.getItem("role"); // Get the role from local storage
+  const role = localStorage.getItem("role");
 
   return role;
 };
