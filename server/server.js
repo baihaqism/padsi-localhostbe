@@ -274,14 +274,18 @@ app.post("/add-transaction", (req, res) => {
       `;
 
       Promise.all(
-        name_service.map((serviceName) => {
+        name_service.map((serviceName, index) => {
           return new Promise((resolve, reject) => {
             db.query(checkProductQuery, [serviceName], (err, productResult) => {
               if (err) {
                 reject(err);
               } else {
                 const productQuantity = productResult[0].quantity_product;
-                resolve(productQuantity);
+                if (quantityValue[index] > productQuantity) {
+                  reject(new Error(`Insufficient quantity for service: ${serviceName}`));
+                } else {
+                  resolve(productQuantity);
+                }
               }
             });
           });
@@ -291,7 +295,7 @@ app.post("/add-transaction", (req, res) => {
           if (productQuantities.some((qty) => qty <= 0)) {
             return db.rollback(() => {
               res.status(400).json({
-                error: "Please contact Admin to update product stock.",
+                error: "Insufficient quantity for one or more services",
               });
             });
           }
@@ -374,12 +378,17 @@ app.post("/add-transaction", (req, res) => {
           );
         })
         .catch((err) => {
-          console.error("Error checking product quantity:", err);
-          return db.rollback(() => {
-            res
-              .status(500)
-              .json({ error: "Internal Server Error", details: err.message });
-          });
+          if (err.message.startsWith("Insufficient quantity for service:")) {
+            // Handle the specific error case for insufficient quantity
+            return res.status(400).json({ error: err.message });
+          } else {
+            console.error("Error checking product quantity:", err);
+            return db.rollback(() => {
+              res
+                .status(500)
+                .json({ error: "Internal Server Error", details: err.message });
+            });
+          }
         });
     });
   } else {
@@ -516,7 +525,7 @@ app.put("/delete-transaction/:id", allowRoles(["Admin"]), (req, res) => {
 
 app.get("/customers", (req, res) => {
   const sql =
-    "SELECT id_customers, name, email, phone, isDeleted FROM customers";
+    "SELECT id_customers, name, email, phone, isDeleted FROM customers WHERE isDeleted = 0";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);
@@ -615,7 +624,7 @@ app.put("/delete-customer/:id", (req, res) => {
 });
 
 app.get("/users", allowRoles(["Admin", "Cashier"]), (req, res) => {
-  const sql = "SELECT * FROM users";
+  const sql = "SELECT * FROM users WHERE isDeleted = 0";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);

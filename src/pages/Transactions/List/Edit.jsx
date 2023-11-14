@@ -32,7 +32,6 @@ const EditTransaction = () => {
   const [issuedTransactions, setIssuedTransactions] = useState(null);
   const [customerName, setCustomerName] = useState(null);
   const navigate = useNavigate();
-  const [startDate, setStartDate] = useState(new Date());
   const CustomInput = forwardRef((props, ref) => {
     return <TextField variant="outlined" size="small" fullWidth {...props} />;
   });
@@ -113,6 +112,8 @@ const EditTransaction = () => {
 
         setSelectedCustomer(data.id_customers);
         setSelectedUser(data.id_users);
+        setSelectedCustomerInfo(data);
+        console.log("Service", setSelectedCustomerInfo);
       })
       .catch((error) => {
         console.error("Error fetching transaction details:", error);
@@ -135,6 +136,8 @@ const EditTransaction = () => {
       })
       .then((data) => {
         console.log("Services data:", data);
+        console.log("selectedCustomer:", selectedCustomer);
+        console.log("selectedCustomerInfo:", selectedCustomerInfo);
         setServices(data);
 
         const prices = {};
@@ -168,6 +171,16 @@ const EditTransaction = () => {
         return;
       }
 
+      const formatDate = (date) => {
+        const parsedDate = new Date(date);
+        const year = parsedDate.getFullYear();
+        const month = (parsedDate.getMonth() + 1).toString().padStart(2, "0");
+        const day = parsedDate.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      const formattedDate = formatDate(issuedTransactions);
+
       const transactionDetail = serviceBoxes.map((serviceBox) => {
         const serviceName = serviceBox.name_service;
         const quantity = serviceBox.quantity;
@@ -200,6 +213,8 @@ const EditTransaction = () => {
           },
           body: JSON.stringify({
             name: selectedCustomerInfo.name,
+            email: selectedCustomerInfo.email,
+            phone: selectedCustomerInfo.phone,
             name_service: serviceBoxes.map(
               (serviceBox) => serviceBox.name_service
             ),
@@ -207,7 +222,7 @@ const EditTransaction = () => {
               (serviceBox) => servicePrices[serviceBox.name_service] || ""
             ),
             quantity: serviceBoxes.map((serviceBox) => serviceBox.quantity),
-            issued_transactions: startDate,
+            issued_transactions: formattedDate,
             total_transactions: totalCost,
             id_customers: selectedCustomer,
             id_users: selectedUser,
@@ -215,7 +230,7 @@ const EditTransaction = () => {
           }),
         }
       );
-
+      console.log("issuedTransactions:", issuedTransactions);
       if (response.ok) {
         setSnackbarSeverity("success");
         setSnackbarMessage("Transaction edited successfully!");
@@ -314,7 +329,7 @@ const EditTransaction = () => {
         (customer) => customer.id_customers === value
       );
       setSelectedCustomer(value);
-      setSelectedCustomerInfo(selected);
+      setSelectedCustomerInfo(selected); // Update the selectedCustomerInfo state
     }
   };
 
@@ -489,7 +504,7 @@ const EditTransaction = () => {
                       selected={
                         issuedTransactions ? new Date(issuedTransactions) : null
                       }
-                      onChange={(date) => setStartDate(date)}
+                      onChange={(date) => setIssuedTransactions(date)}
                     />
                   </DatePickerWrapper>
                 </Grid>
@@ -516,7 +531,10 @@ const EditTransaction = () => {
               <TextField
                 select
                 size="small"
-                value={selectedCustomer}
+                value={
+                  selectedCustomer ||
+                  (selectedCustomerInfo && selectedCustomerInfo.id_customers)
+                }
                 onChange={handleCustomerChange}
                 sx={{
                   minWidth: 200,
@@ -533,9 +551,6 @@ const EditTransaction = () => {
                   },
                 }}
               >
-                <MenuItem disabled value="">
-                  {customerName}
-                </MenuItem>
                 <MenuItem
                   value="+Add Customer"
                   onClick={() => setAddCustomerDialogOpen(true)}
@@ -553,7 +568,7 @@ const EditTransaction = () => {
                   </MenuItem>
                 ))}
               </TextField>
-              {selectedCustomerInfo && (
+              {selectedCustomer && selectedCustomerInfo && (
                 <>
                   <Typography
                     variant="body2"
@@ -565,7 +580,8 @@ const EditTransaction = () => {
                       ...fontStyles,
                     }}
                   >
-                    {selectedCustomerInfo.email}
+                    {selectedCustomerInfo.customer_email ||
+                      selectedCustomerInfo.email}
                   </Typography>
                   <Typography
                     variant="body2"
@@ -577,10 +593,12 @@ const EditTransaction = () => {
                       ...fontStyles,
                     }}
                   >
-                    {selectedCustomerInfo.phone}
+                    {selectedCustomerInfo.customer_phone ||
+                      selectedCustomerInfo.phone}
                   </Typography>
                 </>
               )}
+
               <Dialog
                 fullWidth
                 maxWidth="xs"

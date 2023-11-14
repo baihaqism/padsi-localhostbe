@@ -10,6 +10,7 @@ const MainDash = () => {
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const reloadFlag = localStorage.getItem("reloadFlag");
+  localStorage.setItem("selectedItem", "Dashboard")
 
   useEffect(() => {
     
