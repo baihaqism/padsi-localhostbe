@@ -120,10 +120,10 @@ const TableUser = () => {
       const data = await response.json();
 
       const filteredUsers = data.filter(
-        (user) =>
+        (user) => !user.isDeleted && (
           user.firstname.toLowerCase().includes(searchQuery.toLowerCase()) ||
           user.lastname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.username.toLowerCase().includes(searchQuery.toLowerCase())
+          user.username.toLowerCase().includes(searchQuery.toLowerCase()))
       );
 
       setRows(filteredUsers);
@@ -327,7 +327,7 @@ const TableUser = () => {
   const handleDeleteUser = async (id) => {
     try {
       const response = await fetch(`http://localhost:5000/delete-user/${id}`, {
-        method: "DELETE",
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
         },

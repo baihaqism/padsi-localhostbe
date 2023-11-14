@@ -12,7 +12,6 @@ import {
 import { UisAngleDown } from "@iconscout/react-unicons-solid";
 import ChartTransactions from "./ChartTransactions";
 
-
 const Availability = () => {
   const [services, setServices] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -20,14 +19,17 @@ const Availability = () => {
 
   useEffect(() => {
     fetch("http://localhost:5000/services-with-products", {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
-      }
+      },
     })
       .then((response) => response.json())
-      .then((data) => setServices(data))
+      .then((data) => {
+        const availableServices = data.filter((service) => !service.isDeleted);
+        setServices(availableServices);
+      })
       .catch((error) =>
         console.error("Error fetching service availability:", error)
       );
@@ -48,7 +50,7 @@ const Availability = () => {
         width={"1590px"}
       >
         <Grid item xs={8} sm={6} md={8}>
-          <ChartTransactions/>
+          <ChartTransactions />
         </Grid>
         <Grid item xs={4} sm={6} md={4}>
           <Paper elevation={6} square={false} sx={{ height: "auto" }}>

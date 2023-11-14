@@ -5,34 +5,26 @@ import {
   CardHeader,
   IconButton,
   Collapse,
+  Tab,
+  Tabs,
 } from "@mui/material";
-import ReactApexChart from "react-apexcharts";
 import { UisAngleDown } from "@iconscout/react-unicons-solid";
-import { format, parseISO } from "date-fns";
+import SUMofTotal from "./Chart/SUMofTotal";
+import SUMofNameService from "./Chart/SUMofNameService";
+import TEST from "./Chart/TEST";
+
 
 const ChartTransactions = () => {
-  const [services, setServices] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const token = localStorage.getItem("token");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/transactions", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setServices(data);
-        console.log("Fetch", data);
-      })
-      .catch((error) => console.error("Error fetching service data:", error));
-  }, []);
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const handleCollapseToggle = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setSelectedTab(newValue);
+    setIsCollapsed(true);
   };
 
   return (
@@ -40,11 +32,12 @@ const ChartTransactions = () => {
       <CardHeader
         sx={{
           display: "flex",
+          justifyContent: "space-between",
           color: "rgba(58, 53, 65, 0.87)",
           cursor: "default",
           fontSize: "1rem",
         }}
-        title="Total Profit"
+        title="List of Chart"
         action={
           <IconButton
             aria-label="expand"
@@ -57,9 +50,16 @@ const ChartTransactions = () => {
           </IconButton>
         }
       />
+      <Tabs value={selectedTab} onChange={handleTabChange}>
+        <Tab label="Chart" />
+        <Tab label="Table" />
+        <Tab label="TEST" />
+      </Tabs>
       <Collapse in={isCollapsed}>
         <CardContent>
-          
+          {selectedTab === 0 && <SUMofTotal initialChartData />}
+          {selectedTab === 1 && <SUMofNameService initialChartData />}
+          {selectedTab === 2 && <TEST />}
         </CardContent>
       </Collapse>
     </Paper>

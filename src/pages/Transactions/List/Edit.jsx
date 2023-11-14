@@ -37,8 +37,8 @@ const EditTransaction = () => {
     return <TextField variant="outlined" size="small" fullWidth {...props} />;
   });
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState([""]);
-  const [selectedCustomer, setSelectedCustomer] = useState([""]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [isAddCustomerDialogOpen, setAddCustomerDialogOpen] = useState(false);
@@ -55,9 +55,9 @@ const EditTransaction = () => {
     },
   ]);
   const [services, setServices] = useState([]);
-  const [servicePrices, setServicePrices] = useState([""]);
+  const [servicePrices, setServicePrices] = useState({});
   const [serviceQuantities, setServiceQuantities] = useState({ 0: 1 });
-  const [serviceTotalPrices, setServiceTotalPrices] = useState([""]);
+  const [serviceTotalPrices, setServiceTotalPrices] = useState({});
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
@@ -65,7 +65,7 @@ const EditTransaction = () => {
     setServiceBoxes([
       ...serviceBoxes,
       {
-        name: "",
+        name_service: "",
         quantity: 1,
         price: "",
       },
@@ -88,6 +88,7 @@ const EditTransaction = () => {
     setSelectedCustomerInfo(null);
     setSelectedUser("");
   };
+
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -101,6 +102,17 @@ const EditTransaction = () => {
         setTransaction(data);
         setIssuedTransactions(data.issued_transactions);
         setCustomerName(data.customer_name);
+
+        // Pre-fill serviceBoxes with fetched data
+        const serviceBox = {
+          name_service: data.name_service,
+          quantity: parseInt(data.quantity),
+          price: data.price_service,
+        };
+        setServiceBoxes([serviceBox]);
+
+        setSelectedCustomer(data.id_customers);
+        setSelectedUser(data.id_users);
       })
       .catch((error) => {
         console.error("Error fetching transaction details:", error);

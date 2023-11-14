@@ -7,6 +7,8 @@ import {
   Box,
   Avatar,
   Typography,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   UilUser,
@@ -40,7 +42,10 @@ const useFetchTotalTransactions = () => {
       })
       .then(function (data) {
         if (Array.isArray(data)) {
-          setCustomerCount(data.length);
+          const activeCustomers = data.filter(
+            (customer) => !customer.isDeleted
+          );
+          setCustomerCount(activeCustomers.length);
         }
       })
       .catch(function (error) {
@@ -50,7 +55,7 @@ const useFetchTotalTransactions = () => {
     fetch("http://localhost:5000/transactions", {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`, 
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -59,17 +64,20 @@ const useFetchTotalTransactions = () => {
       })
       .then(function (data) {
         if (Array.isArray(data)) {
+          const activeTransactions = data.filter(
+            (transaction) => !transaction.isDeleted
+          );
           setTotalTransactions(
-            data.reduce(function (total, transaction) {
+            activeTransactions.reduce(function (total, transaction) {
               return total + parseInt(transaction.total_transactions, 10);
             }, 0)
           );
-          setTransactionCount(data.length);
+          setTransactionCount(activeTransactions.length);
           const currentDate = new Date();
           const oneWeekAgo = new Date(currentDate);
           oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
           setWeeklySalesCount(
-            data.filter(function (transaction) {
+            activeTransactions.filter(function (transaction) {
               const transactionDate = new Date(transaction.issued_transactions);
               return (
                 transactionDate >= oneWeekAgo && transactionDate <= currentDate

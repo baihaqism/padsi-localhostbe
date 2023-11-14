@@ -96,29 +96,31 @@ const TableCustomer = () => {
   const [isAddCustomerDialogOpen, setAddCustomerDialogOpen] = useState(false);
 
   const fetchData = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/customers", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  try {
+    const response = await fetch("http://localhost:5000/customers", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      const filteredCustomers = data.filter(
-        (customer) =>
-          customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          customer.phone.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    const filteredCustomers = data.filter(
+      (customer) => !customer.isDeleted && (
+        customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.phone.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
 
-      setRows(filteredCustomers);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+    setRows(filteredCustomers);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
 
   const addNewCustomer = () => {
     if (
@@ -245,7 +247,7 @@ const TableCustomer = () => {
       const response = await fetch(
         `http://localhost:5000/delete-customer/${id}`,
         {
-          method: "DELETE",
+          method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
           },

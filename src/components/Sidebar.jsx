@@ -35,6 +35,7 @@ const Sidebar = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("role")
     localStorage.removeItem("selectedItem");
+    localStorage.removeItem("reloadFlag");
     navigate("/login");
   };
 

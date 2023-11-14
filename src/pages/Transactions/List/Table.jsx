@@ -71,6 +71,7 @@ const getFormattedDate = (dateString) => {
 };
 
 const TableStickyHeader = () => {
+  const userRole = localStorage.getItem("role");
   const token = localStorage.getItem("token");
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -94,8 +95,12 @@ const TableStickyHeader = () => {
 
       data.sort((a, b) => a.id_transactions - b.id_transactions);
 
+      const filteredData = data.filter(
+        (transaction) => transaction.isDeleted !== 1
+      );
+
       setRows(
-        data.map((transaction) =>
+        filteredData.map((transaction) =>
           createTransaction(
             transaction.id_transactions,
             transaction.transaction_name,
@@ -171,7 +176,7 @@ const TableStickyHeader = () => {
       const response = await fetch(
         `http://localhost:5000/delete-transaction/${id}`,
         {
-          method: "DELETE",
+          method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -271,48 +276,65 @@ const TableStickyHeader = () => {
     {
       field: "cashier",
       headerName: "Cashier",
-      minWidth: 220,
+      minWidth: 190,
     },
     {
       field: "actions",
       headerName: "ACTIONS",
       type: "actions",
       width: 90,
-      getActions: (params) => [
-        <GridActionsCellItem
-          icon={<UilEye />}
-          label="View Details"
-          showInMenu
-          onClick={(event) => {
-            event.stopPropagation();
-            const id_transactions = params.id;
-            navigate(`/transactions/details/${id_transactions}`);
-          }}
-        />,
-        <GridActionsCellItem
-          icon={<UilPen />}
-          label="Edit"
-          showInMenu
-          onClick={() => {
-            const id_transactions = params.id;
-            const userRole = localStorage.getItem("role");
+      getActions: (params) => {
+        const isAdmin = localStorage.getItem("role") === "Admin";
 
-            if (userRole === "Admin") {
-              navigate(`/transactions/edit/${id_transactions}`);
-            } else {
-              setSnackbarSeverity("error");
-              setSnackbarMessage("Access denied. You do not have permission to edit.");
-              setSnackbarOpen(true);
-            }
-          }}
-        />,
-        <GridActionsCellItem
-          icon={<UilTrash />}
-          label="Delete"
-          showInMenu
-          onClick={() => handleDeleteTransaction(params.id)}
-        />,
-      ],
+        if (isAdmin) {
+          return [
+            <GridActionsCellItem
+              icon={<UilEye />}
+              label="View Details"
+              onClick={(event) => {
+                event.stopPropagation();
+                const id_transactions = params.id;
+                navigate(`/transactions/details/${id_transactions}`);
+              }}
+            />,
+            <GridActionsCellItem
+              icon={<UilPen />}
+              label="Edit"
+              onClick={() => {
+                const id_transactions = params.id;
+                const userRole = localStorage.getItem("role");
+
+                if (userRole === "Admin") {
+                  navigate(`/transactions/edit/${id_transactions}`);
+                } else {
+                  setSnackbarSeverity("error");
+                  setSnackbarMessage(
+                    "Access denied. You do not have permission to edit."
+                  );
+                  setSnackbarOpen(true);
+                }
+              }}
+            />,
+            <GridActionsCellItem
+              icon={<UilTrash />}
+              label="Delete"
+              onClick={() => handleDeleteTransaction(params.id)}
+            />,
+          ];
+        } else {
+          return [
+            <GridActionsCellItem
+              icon={<UilEye />}
+              label="View Details"
+              onClick={(event) => {
+                event.stopPropagation();
+                const id_transactions = params.id;
+                navigate(`/transactions/details/${id_transactions}`);
+              }}
+            />,
+          ];
+        }
+      },
     },
   ];
 

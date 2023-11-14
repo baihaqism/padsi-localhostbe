@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Route,
   Routes,
   Navigate,
 } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import "./App.css";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import PublicRoute from "./utils/PublicRoute";
@@ -21,10 +23,38 @@ import Customers from "./pages/Customers/Customers";
 import Users from "./pages/Users/Users";
 import Products from "./pages/Products/Products";
 import Services from "./pages/Services/Services";
+import Expenses from "./pages/Expenses/Expenses";
 
 function App() {
   const userRole = localStorage.getItem("role");
-  const token = useAuth();
+  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if token has expired
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      const currentTime = Date.now() / 1000; // Convert to seconds
+
+      if (decodedToken.exp < currentTime) {
+        // Token has expired, remove token and role from localStorage
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  console.log("Initial userRole:", userRole);
+  console.log("Initial token:", token);
+
   return (
     <Router>
       <Routes>
@@ -127,6 +157,21 @@ function App() {
                 </div>
               ) : (
                 <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              userRole === "Admin" && token ? (
+                <div className="App">
+                  <div className="AppGlass">
+                    <Sidebar />
+                    <Expenses />
+                  </div>
+                </div>
+              ) : (
+                <Navigate to="/dashboard" />
               )
             }
           />

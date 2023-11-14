@@ -33,12 +33,14 @@ const TableProduct = () => {
   const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name_product: "",
+    price_product: "",
     quantity_product: "",
   });
   const [isEditProductDialogOpen, setEditProductDialogOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editedProduct, setEditedProduct] = useState({
     name_product: "",
+    price_product: "",
     quantity_product: "",
   });
   const [rows, setRows] = useState([]);
@@ -124,6 +126,7 @@ const TableProduct = () => {
                   setEditedProduct({
                     id: productToEdit.id_product,
                     name_product: productToEdit.name_product,
+                    price_product: productToEdit.price_product,
                     quantity_product: productToEdit.quantity_product,
                   });
                   setIsOpen(true);
@@ -164,8 +167,10 @@ const TableProduct = () => {
       const response = await fetch(
         `http://localhost:5000/delete-products/${id}`,
         {
-          method: "DELETE",
-          Authorization: `Bearer ${token}`,
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (response.ok) {
@@ -193,33 +198,32 @@ const TableProduct = () => {
 
       const data = await response.json();
 
-      const filteredProducts = data.filter((product) => {
-        const nameMatch = product.name_product
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-        const priceMatch = product.price_product
-          .toString()
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-        const quantityMatch = product.quantity_product
-          .toString()
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-        return nameMatch || quantityMatch || priceMatch;
-      });
+      const filteredProducts = data.filter(
+        (product) =>
+          !product.isDeleted &&
+          (product.name_product
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+            product.price_product
+              .toString()
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            product.quantity_product
+              .toString()
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()))
+      );
 
       setRows(filteredProducts);
     } catch (error) {
-      // console.error("Error fetching data:", error);
+      console.error("Error fetching data:", error);
     }
   };
 
   const addNewProduct = () => {
     if (
       newProduct.name_product.trim() === "" ||
+      newProduct.price_product.trim() === "" ||
       newProduct.quantity_product.trim() === ""
     ) {
       setSnackbarSeverity("error");
@@ -243,6 +247,7 @@ const TableProduct = () => {
             setProducts([...products, data]);
             setNewProduct({
               name_product: "",
+              price_product: "",
               quantity_product: "",
             });
             fetchData();
@@ -263,8 +268,13 @@ const TableProduct = () => {
 
   const handleEdit = () => {
     const editedQuantity = editedProduct.quantity_product.toString().trim();
+    const editedPrice = editedProduct.price_product.toString().trim();
 
-    if (editedProduct.name_product.trim() === "" || editedQuantity === "") {
+    if (
+      editedProduct.name_product.trim() === "" ||
+      editedPrice === "" ||
+      editedQuantity === ""
+    ) {
       setSnackbarSeverity("error");
       setSnackbarMessage("Please fill in all required fields.");
       setSnackbarOpen(true);
@@ -381,7 +391,7 @@ const TableProduct = () => {
         <Button
           variant="contained"
           onClick={() => {
-            const userRole = localStorage.getItem("Role");
+            const userRole = localStorage.getItem("role");
 
             if (userRole === "Admin") {
               setAddProductDialogOpen(true);
@@ -428,6 +438,24 @@ const TableProduct = () => {
                 fullWidth
                 sx={{
                   marginTop: "5px",
+                }}
+              />
+              <TextField
+                label="Price"
+                value={newProduct.price_product}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  if (!isNaN(inputValue) && inputValue > 0) {
+                    setNewProduct({
+                      ...newProduct,
+                      price_product: inputValue,
+                    });
+                  }
+                }}
+                type="number"
+                fullWidth
+                sx={{
+                  marginTop: "25px",
                 }}
               />
               <TextField
@@ -517,6 +545,24 @@ const TableProduct = () => {
                   marginTop: "10px",
                 }}
                 fullWidth
+              />
+              <TextField
+                label="Price"
+                value={editedProduct.price_product}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  if (!isNaN(inputValue) && inputValue > 0) {
+                    setEditedProduct({
+                      ...editedProduct,
+                      price_product: inputValue,
+                    });
+                  }
+                }}
+                type="number"
+                fullWidth
+                sx={{
+                  marginTop: "25px",
+                }}
               />
               <TextField
                 label="Stock"

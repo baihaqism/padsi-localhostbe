@@ -13,37 +13,42 @@ export const SidebarData = [
     icon: UilEstate,
     title: "Dashboard",
     path: "/dashboard",
-    role: ["Admin", "Cashier"]
+    role: ["Admin", "Cashier"],
   },
   {
     icon: UilClipboardAlt,
     title: "Transactions",
     path: "/transactions",
-    role: ["Admin", "Cashier"]
+    role: ["Admin", "Cashier"],
   },
   {
     icon: UilFlower,
-    title: 'Services',
+    title: "Services",
     path: "/services",
-    role: ["Admin"]
+    role: ["Admin"],
+  },
+  {
+    icon: UilClipboardAlt,
+    title: "Expenses",
+    path: "/expenses",
+    role: ["Admin"],
   },
   {
     icon: UilPackage,
-     title: 'Products',
-     path: "/products",
-     role: ["Admin", "Cashier"]
-   },
+    title: "Products",
+    path: "/products",
+    role: ["Admin", "Cashier"],
+  },
   {
     icon: UilUsersAlt,
     title: "Customers",
     path: "/customers",
-    role: ["Admin", "Cashier"]
+    role: ["Admin", "Cashier"],
   },
   {
     icon: UilUser,
     title: "Users",
     path: "/users",
-    role: ["Admin"]
+    role: ["Admin"],
   },
 ];
-

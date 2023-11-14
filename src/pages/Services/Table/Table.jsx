@@ -147,12 +147,17 @@ const TableService = () => {
       const response = await fetch(
         `http://localhost:5000/delete-service/${id}`,
         {
-          method: "DELETE",
-          Authorization: `Bearer ${token}`,
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (response.ok) {
-        console.log("Service deleted successfully");
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Service deleted successfully!");
+        setSnackbarOpen(true);
+        setAddServiceDialogOpen(false);
         fetchData();
       } else {
         console.error("Error deleting service:", response.statusText);
@@ -273,13 +278,13 @@ const TableService = () => {
       const data = await response.json();
 
       const filteredServices = data.filter(
-        (service) =>
+        (service) => !service.isDeleted && (
           service.name_service
             .toLowerCase()
             .includes(searchQuery.toLowerCase()) ||
           service.price_service
             .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+            .includes(searchQuery.toLowerCase()))
       );
 
       setRows(filteredServices);
@@ -506,8 +511,7 @@ const TableService = () => {
           pageSize={10}
           pageSizeOptions={[10, 20, 25]}
           getRowId={(row) => row.id_service}
-          sx={{ height: '710px' }}
-          
+          sx={{ height: "710px" }}
         />
         <Dialog
           fullWidth

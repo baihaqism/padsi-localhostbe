@@ -12,7 +12,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const db = mysql.createConnection({
-  host: "localhost",
+  host: "127.0.0.1",
   user: "root",
   password: "",
   database: "railway",
@@ -183,6 +183,7 @@ app.get("/transactions", (req, res) => {
       t.quantity,
       t.issued_transactions,
       t.total_transactions,
+      t.isDeleted,
       c.name AS customer_name,
       c.email AS customer_email,
       c.phone AS customer_phone,
@@ -210,6 +211,7 @@ app.get("/transactions", (req, res) => {
         quantity: row.quantity,
         issued_transactions: row.issued_transactions,
         total_transactions: row.total_transactions,
+        isDeleted: row.isDeleted,
         customer_name: row.customer_name,
         customer_email: row.customer_email,
         customer_phone: row.customer_phone,
@@ -491,17 +493,20 @@ app.put("/edit-transaction/:id", allowRoles(["Admin"]), (req, res) => {
   }
 });
 
-app.delete("/delete-transaction/:id", allowRoles(["Admin"]), (req, res) => {
+app.put("/delete-transaction/:id", allowRoles(["Admin"]), (req, res) => {
   const { id } = req.params;
 
-  const sql = "DELETE FROM transactions WHERE id_transactions = ?";
+  const sql =
+    "UPDATE transactions SET isDeleted = true WHERE id_transactions = ?";
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error("Error deleting transaction:", err);
       res.status(500).json({ error: "Internal Server Error" });
     } else {
       if (result.affectedRows > 0) {
-        res.status(200).json({ message: "Transaction deleted successfully" });
+        res
+          .status(200)
+          .json({ message: "Transaction soft deleted successfully" });
       } else {
         res.status(404).json({ error: "Transaction not found" });
       }
@@ -510,7 +515,8 @@ app.delete("/delete-transaction/:id", allowRoles(["Admin"]), (req, res) => {
 });
 
 app.get("/customers", (req, res) => {
-  const sql = "SELECT id_customers, name, email, phone FROM customers";
+  const sql =
+    "SELECT id_customers, name, email, phone, isDeleted FROM customers";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);
@@ -590,17 +596,17 @@ app.put("/update-customer/:id", (req, res) => {
   );
 });
 
-app.delete("/delete-customer/:id", (req, res) => {
+app.put("/delete-customer/:id", (req, res) => {
   const { id } = req.params;
 
-  const sql = "DELETE FROM customers WHERE id_customers = ?";
+  const sql = "UPDATE customers SET isDeleted = true WHERE id_customers = ?";
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error("Error deleting customer:", err);
       res.status(500).json({ error: "Internal Server Error" });
     } else {
       if (result.affectedRows > 0) {
-        res.status(200).json({ message: "Customer deleted successfully" });
+        res.status(200).json({ message: "Customer soft deleted successfully" });
       } else {
         res.status(404).json({ error: "Customer not found" });
       }
@@ -609,8 +615,7 @@ app.delete("/delete-customer/:id", (req, res) => {
 });
 
 app.get("/users", allowRoles(["Admin", "Cashier"]), (req, res) => {
-  const sql =
-    "SELECT id_users, firstname, lastname, username, password, role FROM users";
+  const sql = "SELECT * FROM users";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);
@@ -716,19 +721,19 @@ app.put("/update-user/:id", allowRoles(["Admin"]), (req, res) => {
   };
 });
 
-app.delete("/delete-user/:id", allowRoles(["Admin"]), (req, res) => {
+app.put("/delete-user/:id", allowRoles(["Admin"]), (req, res) => {
   const { id } = req.params;
 
-  const sql = "DELETE FROM users WHERE id_users = ?";
+  const sql = "UPDATE users SET isDeleted = true WHERE id_users = ?";
   db.query(sql, [id], (err, result) => {
     if (err) {
-      console.error("Error deleting customer:", err);
+      console.error("Error deleting user:", err);
       res.status(500).json({ error: "Internal Server Error" });
     } else {
       if (result.affectedRows > 0) {
-        res.status(200).json({ message: "Customer deleted successfully" });
+        res.status(200).json({ message: "User soft deleted successfully" });
       } else {
-        res.status(404).json({ error: "Customer not found" });
+        res.status(404).json({ error: "User not found" });
       }
     }
   });
@@ -747,30 +752,34 @@ app.get("/products", (req, res) => {
 });
 
 app.post("/add-product", allowRoles(["Admin"]), (req, res) => {
-  const { name_product, quantity_product } = req.body;
+  const { name_product, price_product, quantity_product } = req.body;
 
   const sql =
-    "INSERT INTO products (name_product, quantity_product) VALUES (?, ?)";
+    "INSERT INTO products (name_product, price_product, quantity_product) VALUES (?, ?, ?)";
 
-  db.query(sql, [name_product, quantity_product], (err, result) => {
-    if (err) {
-      if (err.code === "ER_DUP_ENTRY") {
-        res
-          .status(400)
-          .json({ error: "Product with the same name already exists" });
+  db.query(
+    sql,
+    [name_product, price_product, quantity_product],
+    (err, result) => {
+      if (err) {
+        if (err.code === "ER_DUP_ENTRY") {
+          res
+            .status(400)
+            .json({ error: "Product with the same name already exists" });
+        } else {
+          console.error("Error adding product:", err);
+          res.status(500).json({ error: "Internal Server Error" });
+        }
       } else {
-        console.error("Error adding product:", err);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(200).json({ message: "Product added successfully" });
       }
-    } else {
-      res.status(200).json({ message: "Product added successfully" });
     }
-  });
+  );
 });
 
 app.put("/update-products/:id", allowRoles(["Admin"]), (req, res) => {
   const { id } = req.params;
-  const { name_product, quantity_product } = req.body;
+  const { name_product, price_product, quantity_product } = req.body;
 
   const sqlSelect =
     "SELECT * FROM products WHERE name_product = ? AND id_product <> ?";
@@ -792,10 +801,10 @@ app.put("/update-products/:id", allowRoles(["Admin"]), (req, res) => {
               res.status(404).json({ error: "Product not found" });
             } else {
               const sqlUpdate =
-                "UPDATE products SET name_product = ?, quantity_product = ? WHERE id_product = ?";
+                "UPDATE products SET name_product = ?, price_product = ?, quantity_product = ? WHERE id_product = ?";
               db.query(
                 sqlUpdate,
-                [name_product, quantity_product, id],
+                [name_product, price_product, quantity_product, id],
                 (updateErr, updateResult) => {
                   if (updateErr) {
                     console.error("Error updating product:", updateErr);
@@ -819,34 +828,32 @@ app.put("/update-products/:id", allowRoles(["Admin"]), (req, res) => {
   });
 });
 
-app.delete("/delete-products/:id", allowRoles(["Admin"]), (req, res) => {
+app.put("/delete-products/:id", allowRoles(["Admin"]), (req, res) => {
   const productId = req.params.id;
 
-  const deleteServiceProductsQuery = `DELETE FROM serviceproducts WHERE product_id = ?`;
-  console.log(
-    "Deleting from serviceproducts table:",
-    deleteServiceProductsQuery
-  );
+  const updateServiceProductsQuery = `UPDATE serviceproducts SET isDeleted = true WHERE product_id = ?`;
+  console.log("Updating serviceproducts table:", updateServiceProductsQuery);
 
-  db.query(deleteServiceProductsQuery, [productId], (err1, result1) => {
+  db.query(updateServiceProductsQuery, [productId], (err1, result1) => {
     if (err1) {
-      console.error("Error deleting service products:", err1);
-      res.status(500).json({ error: "Error deleting service products" });
+      console.error("Error updating service products:", err1);
+      res.status(500).json({ error: "Error updating service products" });
     } else {
-      const deleteServiceQuery = `DELETE FROM products WHERE id_product = ?`;
-      console.log("Deleting from products table:", deleteServiceQuery);
+      const updateProductQuery = `UPDATE products SET isDeleted = true WHERE id_product = ?`;
+      console.log("Updating products table:", updateProductQuery);
 
-      db.query(deleteServiceQuery, [productId], (err2, result2) => {
+      db.query(updateProductQuery, [productId], (err2, result2) => {
         if (err2) {
-          console.error("Error deleting product:", err2);
-          res.status(500).json({ error: "Error deleting product" });
+          console.error("Error updating product:", err2);
+          res.status(500).json({ error: "Error updating product" });
         } else {
           if (result2.affectedRows > 0) {
             console.log(
-              "Service and associated products deleted successfully."
+              "Product and associated service products soft deleted successfully."
             );
             res.json({
-              message: "Service and associated products deleted successfully.",
+              message:
+                "Product and associated service products soft deleted successfully.",
             });
           } else {
             console.log("Product not found in products table.");
@@ -866,6 +873,7 @@ app.get("/services-with-products", (req, res) => {
     s.id_service,
     s.name_service,
     s.price_service,
+    s.isDeleted,
     GROUP_CONCAT(ps.product_id) AS product_id,
     CASE
         WHEN SUM(CASE WHEN p.quantity_product = 0 THEN 1 ELSE 0 END) > 0 THEN 'Unavailable'
@@ -892,7 +900,7 @@ app.get("/services-with-products", (req, res) => {
 });
 
 app.get("/services", (req, res) => {
-  const sql = "SELECT * FROM services";
+  const sql = "SELECT * FROM services WHERE isDeleted = 0";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);
@@ -914,15 +922,13 @@ app.post("/add-service", allowRoles(["Admin"]), (req, res) => {
     db.query(insertServiceQuery, serviceValues, (err, result) => {
       if (err) {
         if (err.code === "ER_DUP_ENTRY") {
-          res
+          return res
             .status(400)
             .json({ error: "Service with the same name already exists" });
         } else {
           console.error("Error adding product:", err);
-          res.status(500).json({ error: "Internal Server Error" });
+          return res.status(500).json({ error: "Internal Server Error" });
         }
-      } else {
-        res.status(200).json({ message: "Service added successfully" });
       }
 
       const serviceId = result.insertId;
@@ -937,20 +943,21 @@ app.post("/add-service", allowRoles(["Admin"]), (req, res) => {
 
         db.query(insertProductsQuery, [productValues], (err) => {
           if (err) {
-            throw err;
+            console.error("Error adding products:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
           }
 
-          res
-            .status(201)
-            .json({ message: "Service added with associated products" });
+          return res.status(201).json({
+            message: "Service added with associated products",
+          });
         });
       } else {
-        res.status(400).json({ message: "Invalid product_id format" });
+        return res.status(400).json({ message: "Invalid product_id format" });
       }
     });
   } catch (error) {
     console.error("Error adding service:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
@@ -1091,29 +1098,67 @@ app.put("/update-service/:id", allowRoles(["Admin"]), (req, res) => {
   });
 });
 
-app.delete("/delete-service/:id_service", allowRoles(["Admin"]), (req, res) => {
+app.put("/delete-service/:id_service", allowRoles(["Admin"]), (req, res) => {
   const serviceId = req.params.id_service;
 
-  const deleteServiceProductsQuery = `DELETE FROM serviceproducts WHERE service_id = ?`;
+  const updateServiceProductsQuery = `UPDATE serviceproducts SET isDeleted = true WHERE service_id = ?`;
 
-  db.query(deleteServiceProductsQuery, [serviceId], (err1, result1) => {
+  db.query(updateServiceProductsQuery, [serviceId], (err1, result1) => {
     if (err1) {
-      console.error("Error deleting service products:", err1);
-      res.status(500).json({ error: "Error deleting service products" });
+      console.error("Error updating service products:", err1);
+      res.status(500).json({ error: "Error updating service products" });
     } else {
-      const deleteServiceQuery = `DELETE FROM services WHERE id_service = ?`;
+      const updateServiceQuery = `UPDATE services SET isDeleted = true WHERE id_service = ?`;
 
-      db.query(deleteServiceQuery, [serviceId], (err2, result2) => {
+      db.query(updateServiceQuery, [serviceId], (err2, result2) => {
         if (err2) {
-          console.error("Error deleting service:", err2);
-          res.status(500).json({ error: "Error deleting service" });
+          console.error("Error updating service:", err2);
+          res.status(500).json({ error: "Error updating service" });
         } else {
-          console.log("Service and associated products deleted successfully.");
+          console.log(
+            "Service and associated products soft deleted successfully."
+          );
           res.json({
-            message: "Service and associated products deleted successfully.",
+            message:
+              "Service and associated products soft deleted successfully.",
           });
         }
       });
+    }
+  });
+});
+
+app.get('/expenses', (req, res) => {
+  const sql = `
+    SELECT expenses.*, products.name_product
+    FROM expenses
+    JOIN products ON expenses.product_id = products.id_product
+    WHERE expenses.isDeleted = 0
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error executing query:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(results);
+    }
+  });
+});
+
+
+app.get("/transactions-chart", (req, res) => {
+  // Construct the SQL query
+  const query = `SELECT t.id_transactions, t.issued_transactions, t.name_service, t.price_service, t.quantity
+                 FROM transactions t`;
+
+  // Execute the query
+  db.query(query, (error, results) => {
+    if (error) {
+      console.error("Error executing query:", error);
+      res.status(500).json({ error: "An error occurred" });
+    } else {
+      res.json(results);
     }
   });
 });

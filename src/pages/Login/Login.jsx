@@ -28,8 +28,8 @@ function Login() {
         const { token, role } = data;
         localStorage.setItem('token', token)
         localStorage.setItem('role', role);
+        localStorage.setItem("reloadFlag", "false")
         console.log('Login successful:', data)
-        localStorage.setItem('selectedItem', 'Dashboard')
         navigate('/dashboard')
       } else {
         console.error('Login failed:', data.message)
