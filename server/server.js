@@ -117,7 +117,7 @@ app.post("/login", (req, res) => {
           lastname: result[0].lastname,
           role: result[0].role,
         };
-        const token = jwt.sign(user, secretKey, { expiresIn: "24h" });
+        const token = jwt.sign(user, secretKey, { expiresIn: "1000h" });
 
         res
           .status(200)
@@ -194,6 +194,7 @@ app.get("/transactions", (req, res) => {
     LEFT JOIN customers c ON t.id_customers = c.id_customers
     LEFT JOIN services s ON t.name_service = s.name_service
     LEFT JOIN users u ON t.id_users = u.id_users
+    WHERE t.isDeleted = 0;
   `;
 
   db.query(sql, (err, results) => {
@@ -265,41 +266,56 @@ app.post("/add-transaction", (req, res) => {
           .json({ error: "Internal Server Error", details: err.message });
       }
 
-      const checkProductQuery = `
-        SELECT p.quantity_product
-        FROM Products p
-        JOIN ServiceProducts sp ON p.id_product = sp.product_id
-        JOIN services s ON sp.service_id = s.id_service
-        WHERE s.name_service = ?
+      const checkServiceAvailabilityQuery = `
+        SELECT
+          s.id_service,
+          s.name_service,
+          s.price_service,
+          s.isDeleted,
+          GROUP_CONCAT(ps.product_id) AS product_id,
+          CASE
+            WHEN SUM(CASE WHEN p.quantity_product = 0 THEN 1 ELSE 0 END) > 0 THEN 'Unavailable'
+            ELSE 'Available'
+          END AS availability
+        FROM
+          services s
+        LEFT JOIN
+          serviceproducts ps ON s.id_service = ps.service_id
+        LEFT JOIN
+          products p ON ps.product_id = p.id_product
+        WHERE
+          s.name_service = ?
+        GROUP BY
+          s.id_service, s.name_service, s.price_service
       `;
 
       Promise.all(
         name_service.map((serviceName, index) => {
           return new Promise((resolve, reject) => {
-            db.query(checkProductQuery, [serviceName], (err, productResult) => {
-              if (err) {
-                reject(err);
-              } else {
-                const productQuantity = productResult[0].quantity_product;
-                if (quantityValue[index] > productQuantity) {
-                  reject(new Error(`Insufficient quantity for service: ${serviceName}`));
+            db.query(
+              checkServiceAvailabilityQuery,
+              [serviceName],
+              (err, availabilityResult) => {
+                if (err) {
+                  reject(err);
                 } else {
-                  resolve(productQuantity);
+                  const availability = availabilityResult[0].availability;
+                  if (availability === "Unavailable") {
+                    reject(
+                      new Error(
+                        `Service is unavailable: ${serviceName}`
+                      )
+                    );
+                  } else {
+                    resolve();
+                  }
                 }
               }
-            });
+            );
           });
         })
       )
-        .then((productQuantities) => {
-          if (productQuantities.some((qty) => qty <= 0)) {
-            return db.rollback(() => {
-              res.status(400).json({
-                error: "Insufficient quantity for one or more services",
-              });
-            });
-          }
-
+        .then(() => {
           const transactionInsertQuery = `
             INSERT INTO transactions (name, name_service, price_service, quantity, total_transactions, issued_transactions, id_customers, id_users)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -378,15 +394,12 @@ app.post("/add-transaction", (req, res) => {
           );
         })
         .catch((err) => {
-          if (err.message.startsWith("Insufficient quantity for service:")) {
-            // Handle the specific error case for insufficient quantity
+          if (err.message.startsWith('Service is unavailable:')) {
             return res.status(400).json({ error: err.message });
           } else {
-            console.error("Error checking product quantity:", err);
+            console.error('Error checking service availability:', err);
             return db.rollback(() => {
-              res
-                .status(500)
-                .json({ error: "Internal Server Error", details: err.message });
+              res.status(500).json({ error: 'Internal Server Error', details: err.message });
             });
           }
         });
@@ -749,7 +762,7 @@ app.put("/delete-user/:id", allowRoles(["Admin"]), (req, res) => {
 });
 
 app.get("/products", (req, res) => {
-  const sql = "SELECT * FROM products";
+  const sql = "SELECT * FROM products WHERE isDeleted = 0";
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error executing query:", err);
@@ -857,9 +870,6 @@ app.put("/delete-products/:id", allowRoles(["Admin"]), (req, res) => {
           res.status(500).json({ error: "Error updating product" });
         } else {
           if (result2.affectedRows > 0) {
-            console.log(
-              "Product and associated service products soft deleted successfully."
-            );
             res.json({
               message:
                 "Product and associated service products soft deleted successfully.",
@@ -1137,7 +1147,7 @@ app.put("/delete-service/:id_service", allowRoles(["Admin"]), (req, res) => {
   });
 });
 
-app.get('/expenses', (req, res) => {
+app.get("/expenses", (req, res) => {
   const sql = `
     SELECT expenses.*, products.name_product
     FROM expenses
@@ -1147,14 +1157,91 @@ app.get('/expenses', (req, res) => {
 
   db.query(sql, (err, results) => {
     if (err) {
-      console.error('Error executing query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      console.error("Error executing query:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     } else {
       res.json(results);
     }
   });
 });
 
+app.post("/add-expenses", (req, res) => {
+  const { product_id, quantity, total_expense, issued_date } = req.body;
+
+  const sql = `
+    INSERT INTO expenses (product_id, quantity, total_expense, issued_date )
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [product_id, quantity, total_expense, issued_date],
+    (err, results) => {
+      if (err) {
+        console.error("Error executing query:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        // Update product quantity
+        const updateQuantitySql = `
+        UPDATE products
+        SET quantity_product = quantity_product + ?
+        WHERE id_product = ?
+      `;
+
+        db.query(updateQuantitySql, [quantity, product_id], (err) => {
+          if (err) {
+            console.error("Error executing query:", err);
+            res.status(500).json({ error: "Internal Server Error" });
+          } else {
+            res.json({ message: "Expense added successfully" });
+          }
+        });
+      }
+    }
+  );
+});
+
+app.put("/delete-expense/:id_expense", (req, res) => {
+  const expenseId = req.params.id_expense;
+
+  const sql = `
+    UPDATE expenses
+    SET isDeleted = 1
+    WHERE id_expense = ?
+  `;
+
+  db.query(sql, [expenseId], (err, results) => {
+    if (err) {
+      console.error("Error executing query:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else if (results.affectedRows === 0) {
+      res.status(404).json({ error: "Expense not found" });
+    } else {
+      const updateQuantitySql = `
+        UPDATE products
+        SET quantity_product = quantity_product - (
+          SELECT quantity
+          FROM expenses
+          WHERE id_expense = ?
+        )
+        WHERE id_product = (
+          SELECT product_id
+          FROM expenses
+          WHERE id_expense = ?
+        )
+      `;
+
+      db.query(updateQuantitySql, [expenseId, expenseId], (err) => {
+        if (err) {
+          console.error("Error executing query:", err);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res.json({ message: "Expense deleted successfully" });
+        }
+      });
+    }
+  });
+});
 
 app.get("/transactions-chart", (req, res) => {
   // Construct the SQL query

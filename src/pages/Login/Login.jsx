@@ -29,7 +29,6 @@ function Login() {
         localStorage.setItem('token', token)
         localStorage.setItem('role', role);
         localStorage.setItem("reloadFlag", "false")
-        console.log('Login successful:', data)
         navigate('/dashboard')
       } else {
         console.error('Login failed:', data.message)
@@ -77,7 +76,7 @@ function Login() {
 
             <div className="input-remember-forgot">
               <label><input type="checkbox" /> Remember me</label>
-              {/* <a href="#">Forgot password?</a> */}
+              <a href="#">Forgot password?</a>
             </div>
 
             <button type="submit" style={buttonStyle}>Login</button>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import Chart from "react-apexcharts";
 import { format, parseISO } from "date-fns";
 
-const SUMofNameService = ({ initialChartData }) => {
-  const [chartData, setChartData] = useState(initialChartData);
+const SUMofNameService = () => {
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     fetch("http://localhost:5000/transactions", {
@@ -24,30 +24,26 @@ const SUMofNameService = ({ initialChartData }) => {
             parseISO(transaction.issued_transactions),
             "yyyy-MM-dd"
           );
-          const serviceNames = transaction.transaction_name_service.split("\n");
-          const quantities = transaction.quantity.split("\n").map(Number);
+
+          const serviceName = transaction.transaction_name_service;
+          const quantity = Number(transaction.quantity);
 
           if (!acc[issuedDate]) {
             acc[issuedDate] = {};
           }
 
-          serviceNames.forEach((serviceName, index) => {
-            const quantity = quantities[index];
-
-            if (serviceName) {
-              if (acc[issuedDate][serviceName]) {
-                acc[issuedDate][serviceName] += quantity;
-              } else {
-                acc[issuedDate][serviceName] = quantity;
-              }
+          if (serviceName) {
+            if (acc[issuedDate][serviceName]) {
+              acc[issuedDate][serviceName] += quantity;
+            } else {
+              acc[issuedDate][serviceName] = quantity;
             }
-          });
+          }
 
           return acc;
         }, {});
 
         setChartData(updatedChartData);
-        console.log("Chart", updatedChartData);
       })
       .catch((error) => console.error("Error fetching service data:", error));
   }, []);
@@ -63,7 +59,6 @@ const SUMofNameService = ({ initialChartData }) => {
 
       serviceNames.forEach((name) => {
         if (name && count !== null) {
-          // Check for null values
           if (serviceDataMap[name]) {
             serviceDataMap[name].push({
               x: new Date(date).getTime(),
@@ -82,9 +77,15 @@ const SUMofNameService = ({ initialChartData }) => {
       (series) => series.name === serviceName
     );
     if (existingService) {
-      existingService.data = [...existingService.data, ...data];
+      data.forEach((point, index) => {
+        if (existingService.data[index]) {
+          existingService.data[index].y += point.y;
+        } else {
+          existingService.data[index] = { x: point.x, y: point.y };
+        }
+      });
     } else {
-      seriesData.push({ name: serviceName, data: data });
+      seriesData.push({ name: serviceName, data });
     }
   });
 
@@ -94,28 +95,54 @@ const SUMofNameService = ({ initialChartData }) => {
     series.data.every((point) => point.y !== null)
   );
 
-  console.log("Charts", filteredSeriesData);
-
   return (
     <Chart
       options={{
         chart: {
           type: "bar",
-          stacked: true,
+          animations: {
+            enabled: true,
+            easing: "easeinout",
+            speed: 800,
+            animateGradually: {
+              enabled: true,
+              delay: 150,
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350,
+            },
+          },
         },
         xaxis: {
           type: "datetime",
           categories: categories,
-          stacked: true,
         },
         title: {
           text: "SUM of Name_Service by Date",
           align: "left",
         },
+        animations: {
+          enabled: true,
+          easing: "easeinout",
+          speed: 800,
+          animateGradually: {
+            enabled: true,
+            delay: 150,
+          },
+          dynamicAnimation: {
+            enabled: true,
+            speed: 350,
+          },
+        },
         grid: {
           row: {
             colors: ["#f3f3f3", "transparent"],
             opacity: 0.5,
+          },
+          padding: {
+            left: 30, // or whatever value that works
+            right: 50, // or whatever value that works
           },
         },
         dataLabels: {
@@ -131,15 +158,14 @@ const SUMofNameService = ({ initialChartData }) => {
         ],
         plotOptions: {
           bar: {
-            stacked: true,
             horizontal: false,
-            columnWidth: "30%",
+            columnWidth: "100%",
           },
         },
       }}
       series={filteredSeriesData}
       type="bar"
-      height={300}
+      height={425}
     />
   );
 };

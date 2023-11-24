@@ -4,19 +4,38 @@ import { format, parseISO } from "date-fns";
 
 const SUMofTotal = ({ initialChartData }) => {
   const token = localStorage.getItem("token");
-  const [chartData, setChartData] = useState(initialChartData);
+  const [chartData, setChartData] = useState(
+    initialChartData || {
+      transactions: {},
+      expenses: {},
+    }
+  );
 
   useEffect(() => {
-    fetch("http://localhost:5000/transactions", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        const updatedChartData = data.reduce((acc, transaction) => {
+    const fetchChartData = async () => {
+      try {
+        const transactionsResponse = await fetch(
+          "http://localhost:5000/transactions",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const transactionsData = await transactionsResponse.json();
+
+        const expensesResponse = await fetch("http://localhost:5000/expenses", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const expensesData = await expensesResponse.json();
+
+        const updatedChartData = transactionsData.reduce((acc, transaction) => {
           if (transaction.isDeleted !== 1) {
             const issuedDate = format(
               parseISO(transaction.issued_transactions),
@@ -31,10 +50,31 @@ const SUMofTotal = ({ initialChartData }) => {
           return acc;
         }, {});
 
-        setChartData(updatedChartData);
+        const updatedExpensesData = expensesData.reduce((acc, expense) => {
+          const issuedDate = format(
+            parseISO(expense.issued_date),
+            "yyyy-MM-dd"
+          );
+          if (acc[issuedDate]) {
+            acc[issuedDate] += parseInt(expense.total_expense);
+          } else {
+            acc[issuedDate] = parseInt(expense.total_expense);
+          }
+          return acc;
+        }, {});
+
+        setChartData({
+          transactions: updatedChartData,
+          expenses: updatedExpensesData,
+        });
         console.log("Chart", updatedChartData);
-      })
-      .catch((error) => console.error("Error fetching service data:", error));
+        console.log("expenses", updatedExpensesData);
+      } catch (error) {
+        console.error("Error fetching service data:", error);
+      }
+    };
+
+    fetchChartData();
   }, []);
 
   return (
@@ -43,12 +83,47 @@ const SUMofTotal = ({ initialChartData }) => {
         xaxis: {
           type: "datetime",
         },
+        yaxis: {
+          labels: {
+            formatter: function (value) {
+              return value / 1000 + "k";
+            },
+          },
+        },
+        chart: {
+          animations: {
+            enabled: true,
+            easing: "easeinout",
+            speed: 1000,
+            animateGradually: {
+              enabled: true,
+              delay: 500,
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 800,
+            },
+          },
+        },
         title: {
-          text: "SUM of Total Transactions by Date",
+          text: "Revenue",
           align: "left",
         },
-        stroke: {
-          curve: "smooth",
+        markers: {
+          size: 5,
+          animations: {
+            enabled: true,
+            easing: "easeinout",
+            speed: 1000,
+            animateGradually: {
+              enabled: true,
+              delay: 500,
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 800,
+            },
+          },
         },
         grid: {
           row: {
@@ -59,8 +134,17 @@ const SUMofTotal = ({ initialChartData }) => {
       }}
       series={[
         {
-          name: "Total Transactions",
-          data: Object.entries(chartData)
+          name: "Incomes",
+          data: Object.entries(chartData.transactions)
+            .map(([date, total]) => ({
+              x: new Date(date).getTime(),
+              y: total,
+            }))
+            .sort((a, b) => a.x - b.x),
+        },
+        {
+          name: "Expenses",
+          data: Object.entries(chartData.expenses)
             .map(([date, total]) => ({
               x: new Date(date).getTime(),
               y: total,
@@ -69,7 +153,7 @@ const SUMofTotal = ({ initialChartData }) => {
         },
       ]}
       type="line"
-      height={300}
+      height={425}
     />
   );
 };

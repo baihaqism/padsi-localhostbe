@@ -58,7 +58,7 @@ const TableProduct = () => {
       minWidth: 300,
       renderCell: (params) => {
         const priceValue = params.value;
-        const formattedPrice = `Rp ${priceValue}`;
+        const formattedPrice = `Rp. ${priceValue}`;
         return <span>{formattedPrice}</span>;
       },
     },
@@ -113,26 +113,26 @@ const TableProduct = () => {
       getActions: (params) => {
         if (isAdmin) {
           return [
-            <GridActionsCellItem
-              icon={<UilPen />}
-              label="Edit"
-              onClick={() => {
-                const id_product = params.id;
-                const productToEdit = rows.find(
-                  (product) => product.id_product === id_product
-                );
+            // <GridActionsCellItem
+            //   icon={<UilPen />}
+            //   label="Edit"
+            //   onClick={() => {
+            //     const id_product = params.id;
+            //     const productToEdit = rows.find(
+            //       (product) => product.id_product === id_product
+            //     );
 
-                if (productToEdit) {
-                  setEditedProduct({
-                    id: productToEdit.id_product,
-                    name_product: productToEdit.name_product,
-                    price_product: productToEdit.price_product,
-                    quantity_product: productToEdit.quantity_product,
-                  });
-                  setIsOpen(true);
-                }
-              }}
-            />,
+            //     if (productToEdit) {
+            //       setEditedProduct({
+            //         id: productToEdit.id_product,
+            //         name_product: productToEdit.name_product,
+            //         price_product: productToEdit.price_product,
+            //         quantity_product: productToEdit.quantity_product,
+            //       });
+            //       setIsOpen(true);
+            //     }
+            //   }}
+            // />,
             <GridActionsCellItem
               icon={<UilTrash />}
               label="Delete"
@@ -223,8 +223,7 @@ const TableProduct = () => {
   const addNewProduct = () => {
     if (
       newProduct.name_product.trim() === "" ||
-      newProduct.price_product.trim() === "" ||
-      newProduct.quantity_product.trim() === ""
+      newProduct.price_product.trim() === ""
     ) {
       setSnackbarSeverity("error");
       setSnackbarMessage("Please fill in all required fields.");
@@ -338,7 +337,7 @@ const TableProduct = () => {
     ...rows.map((row) => [
       row.id_product,
       row.name_product,
-      `Rp ${row.price_product}`,
+      `Rp. ${row.price_product}`,
       row.quantity_product,
     ]),
   ];
@@ -458,7 +457,7 @@ const TableProduct = () => {
                   marginTop: "25px",
                 }}
               />
-              <TextField
+              {/* <TextField
                 label="Stock"
                 value={newProduct.quantity_product}
                 onChange={(e) => {
@@ -475,7 +474,7 @@ const TableProduct = () => {
                 sx={{
                   marginTop: "25px",
                 }}
-              />
+              /> */}
             </form>
           </DialogContent>
           <DialogActions>

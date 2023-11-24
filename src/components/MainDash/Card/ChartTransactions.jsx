@@ -11,7 +11,7 @@ import {
 import { UisAngleDown } from "@iconscout/react-unicons-solid";
 import SUMofTotal from "./Chart/SUMofTotal";
 import SUMofNameService from "./Chart/SUMofNameService";
-import TEST from "./Chart/TEST";
+import CustomerChart from "./Chart/CustomerChart";
 
 
 const ChartTransactions = () => {
@@ -27,6 +27,11 @@ const ChartTransactions = () => {
     setIsCollapsed(true);
   };
 
+  const initialChartData = {
+    transactions: {},
+    expenses: {},
+  };
+
   return (
     <Paper elevation={6} square={false} sx={{ height: "auto" }}>
       <CardHeader
@@ -37,7 +42,7 @@ const ChartTransactions = () => {
           cursor: "default",
           fontSize: "1rem",
         }}
-        title="List of Chart"
+        title="Graphs"
         action={
           <IconButton
             aria-label="expand"
@@ -51,15 +56,15 @@ const ChartTransactions = () => {
         }
       />
       <Tabs value={selectedTab} onChange={handleTabChange}>
-        <Tab label="Chart" />
-        <Tab label="Table" />
-        <Tab label="TEST" />
+        <Tab label="Revenues" />
+        <Tab label="Services" />
+        <Tab label="Customers" />
       </Tabs>
       <Collapse in={isCollapsed}>
         <CardContent>
-          {selectedTab === 0 && <SUMofTotal initialChartData />}
+          {selectedTab === 0 && <SUMofTotal initialChartData={initialChartData} />}
           {selectedTab === 1 && <SUMofNameService initialChartData />}
-          {selectedTab === 2 && <TEST />}
+          {selectedTab === 2 && <CustomerChart />}
         </CardContent>
       </Collapse>
     </Paper>

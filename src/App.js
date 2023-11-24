@@ -5,20 +5,19 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { LinearProgress } from "@mui/material";
 import { jwtDecode } from "jwt-decode";
 import "./App.css";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import PublicRoute from "./utils/PublicRoute";
-import { useAuth } from "./utils/useAuth";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import Sidebar from "./components/Sidebar";
 import MainDash from "./components/MainDash/MainDash";
 import Transactions from "./pages/Transactions/Transactions";
-import AddTransactions from "./pages/Transactions/List/Add";
-import DetailsTransactions from "./pages/Transactions/List/Preview";
-import EditTransactions from "./pages/Transactions/List/Edit";
+import AddTransactions from "./pages/Transactions/Table/Add";
+import DetailsTransactions from "./pages/Transactions/Table/Preview";
+import EditTransactions from "./pages/Transactions/Table/Edit";
 import Customers from "./pages/Customers/Customers";
 import Users from "./pages/Users/Users";
 import Products from "./pages/Products/Products";
@@ -31,29 +30,19 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token has expired
     if (token) {
       const decodedToken = jwtDecode(token);
-      const currentTime = Date.now() / 1000; // Convert to seconds
+      const currentTime = Date.now() / 1000;
 
       if (decodedToken.exp < currentTime) {
-        // Token has expired, remove token and role from localStorage
         localStorage.removeItem("token");
         localStorage.removeItem("role");
-        setLoading(false);
-      } else {
-        setLoading(false);
       }
-    } else {
-      setLoading(false);
     }
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
   }, [token]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  console.log("Initial userRole:", userRole);
-  console.log("Initial token:", token);
 
   return (
     <Router>

@@ -86,7 +86,6 @@ const TableService = () => {
       .then((response) => response.json())
       .then((data) => {
         setProducts(data);
-        console.log("Products state:", data);
       })
       .catch((error) => console.error("Error fetching products:", error));
   }, []);
@@ -186,7 +185,7 @@ const TableService = () => {
       minWidth: 300,
       renderCell: (params) => {
         const priceValue = params.value;
-        const formattedPrice = `Rp ${priceValue}`;
+        const formattedPrice = `Rp. ${priceValue}`;
         return <span>{formattedPrice}</span>;
       },
     },
@@ -298,7 +297,7 @@ const TableService = () => {
     ...rows.map((row) => [
       row.id_service,
       row.name_service,
-      `Rp ${row.price_service}`,
+      `Rp. ${row.price_service}`,
       row.availability,
     ]),
   ];

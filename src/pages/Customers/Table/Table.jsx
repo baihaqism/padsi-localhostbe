@@ -156,7 +156,6 @@ const TableCustomer = () => {
         return response.json();
       })
       .then((data) => {
-        console.log("Customer added:", data);
         setCustomers([...customers, data]);
         setNewCustomer({
           name: "",
@@ -254,7 +253,6 @@ const TableCustomer = () => {
         }
       );
       if (response.ok) {
-        console.log("Customer deleted successfully");
         fetchData();
         setSnackbarSeverity("success");
         setSnackbarMessage("Customer deleted successfully");
@@ -285,7 +283,7 @@ const TableCustomer = () => {
     <Paper elevation={6} square={false} sx={{ mt: 10 }}>
       <CardHeader title="" titleTypographyProps={{ variant: "h6" }} />
       <TableContainer>
-        <Button
+        {/* <Button
           variant="outlined"
           startIcon={<UilExport />}
           sx={{
@@ -301,7 +299,7 @@ const TableCustomer = () => {
           }}
         >
           EXPORT
-        </Button>
+        </Button> */}
         <TextField
           placeholder="Search Customer"
           shrink="true"

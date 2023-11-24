@@ -41,7 +41,6 @@ function Register() {
         return
       }
       if (response.ok) {
-        console.log("Registration successful:", data)
         navigate("/login")
       } else {
         console.error("Registration failed:", data.message)

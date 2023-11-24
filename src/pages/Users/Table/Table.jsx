@@ -333,7 +333,6 @@ const TableUser = () => {
         },
       });
       if (response.ok) {
-        console.log("User deleted successfully");
         fetchData();
       } else {
         console.error("Error deleting user:", response.statusText);
@@ -355,7 +354,7 @@ const TableUser = () => {
     <Paper elevation={6} square={false} sx={{ mt: 10 }}>
       <CardHeader title="" titleTypographyProps={{ variant: "h6" }} />
       <TableContainer>
-        <Button
+        {/* <Button
           variant="outlined"
           startIcon={<UilExport />}
           sx={{
@@ -371,7 +370,7 @@ const TableUser = () => {
           }}
         >
           EXPORT
-        </Button>
+        </Button> */}
         <TextField
           placeholder="Search User"
           shrink="true"
@@ -524,6 +523,7 @@ const TableUser = () => {
           pageSize={10}
           pageSizeOptions={[10, 20, 25]}
           getRowId={(row) => row.id_users}
+          style={{ height: "631px" }}
         />
         <Dialog fullWidth maxWidth="xs" open={isOpen} onClose={onClose}>
           <DialogTitle

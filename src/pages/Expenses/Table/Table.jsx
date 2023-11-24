@@ -8,10 +8,12 @@ import {
   Paper,
   TableContainer,
   TextField,
+  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  MenuItem,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -34,6 +36,33 @@ const TableExpenses = () => {
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/products", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        console.error("Unauthorized access");
+        return;
+      }
+
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error.message);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const response = await fetch("http://localhost:5000/expenses", {
@@ -49,7 +78,6 @@ const TableExpenses = () => {
       }
 
       const data = await response.json();
-      console.log("Fetched data:", data);
 
       data.sort((a, b) => a.id_expense - b.id_expense);
 
@@ -74,6 +102,76 @@ const TableExpenses = () => {
       setRows(filteredData);
     } catch (error) {
       console.error("Error fetching data:", error.message);
+    }
+  };
+
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [totalExpense, setTotalExpense] = useState([""]);
+  const [issuedDate, setIssuedDate] = useState(new Date());
+
+  useEffect(() => {
+    const selectedProductData = products.find(
+      (product) => product.id_product === selectedProduct
+    );
+
+    if (selectedProductData && quantity !== "") {
+      const calculatedPrice = selectedProductData.price_product * quantity;
+      setTotalExpense(calculatedPrice);
+    }
+  }, [selectedProduct, quantity, products]);
+
+  const handleAddExpense = async () => {
+    try {
+      const selectedProductData = products.find(
+        (product) => product.id_product === selectedProduct
+      );
+
+      if (!selectedProductData || quantity <= 0) {
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Please fill in all required fields.");
+        setSnackbarOpen(true);
+        return;
+      }
+
+      const calculatedPrice = selectedProductData.price_product * quantity;
+      setTotalExpense(calculatedPrice);
+
+      const response = await fetch("http://localhost:5000/add-expenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          product_id: selectedProduct,
+          quantity,
+          total_expense: calculatedPrice,
+          issued_date: issuedDate
+            ? issuedDate.toISOString().split("T")[0]
+            : null,
+        }),
+      });
+
+      setSelectedProduct(null);
+      setQuantity(1);
+      setIssuedDate(new Date());
+
+      if (response.ok) {
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Expense added successfully");
+        setSnackbarOpen(true);
+        fetchData();
+        setAddExpenseDialogOpen(false);
+      } else {
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Error adding the expense.");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Error adding the expense.");
+      setSnackbarOpen(true);
     }
   };
 
@@ -104,6 +202,8 @@ const TableExpenses = () => {
         (typeof expense.id_expense === "string" &&
           expense.id_expense.toLowerCase().includes(query)) ||
         expense.name_product.toLowerCase().includes(query) ||
+        (typeof expense.quantity === "string" &&
+          expense.quantity.toLowerCase().includes(query)) ||
         (typeof expense.total_expense === "string" &&
           expense.total_expense.toLowerCase().includes(query)) ||
         (typeof expense.issued_date === "string" &&
@@ -113,10 +213,7 @@ const TableExpenses = () => {
   };
 
   const filteredByDateRows = filterExpenseByDate(rows, startDate, endDate);
-  const filteredRows = filterExpenseBySearch(
-    filteredByDateRows,
-    searchQuery
-  );
+  const filteredRows = filterExpenseBySearch(filteredByDateRows, searchQuery);
 
   useEffect(() => {
     fetchData();
@@ -155,14 +252,13 @@ const TableExpenses = () => {
   };
 
   const csvData = [
-    ["ID", "NAME", "ITEM", "TOTAL", "ISSUED DATE", "CASHIER"],
-    ...rows.map((row) => [
-      row.id,
-      row.expense_name,
-      row.expense_name_service,
-      row.total,
-      row.issued,
-      row.cashier,
+    ["ID", "PRODUCT", "QUANTITY", "TOTAL", "ISSUED DATE"],
+    ...filteredRows.map((row) => [
+      row.id_expense,
+      row.name_product,
+      row.quantity,
+      row.total_expense,
+      row.issued_date,
     ]),
   ];
 
@@ -187,21 +283,7 @@ const TableExpenses = () => {
       field: "id_expense",
       headerName: "#",
       width: 80,
-      renderCell: (params) => (
-        <span
-          style={{
-            cursor: "pointer",
-            textDecoration: "none",
-            color: "#FA709A",
-          }}
-          onClick={() => {
-            const id_expenses = params.value;
-            navigate(`/expenses/details/${id_expenses}`);
-          }}
-        >
-          #{params.value}
-        </span>
-      ),
+      renderCell: (params) => <span>#{params.value}</span>,
     },
     {
       field: "name_product",
@@ -378,60 +460,81 @@ const TableExpenses = () => {
         </Button>
         <Dialog
           fullWidth
-          maxWidth="xs"
+          maxWidth="sm"
           open={isAddExpenseDialogOpen}
           onClose={() => setAddExpenseDialogOpen(false)}
         >
-          <DialogTitle
-            variant="h6"
-            sx={{ color: "rgba(58, 53, 65, 0.87)"}}
-          >
+          <DialogTitle variant="h6" sx={{ color: "rgba(58, 53, 65, 0.87)" }}>
             Add New Service
           </DialogTitle>
-          {/* <DialogContent>
-            <form>
-              <TextField
-                label="Service Name"
-                value={newService.name_service}
-                onChange={(e) =>
-                  setNewService({ ...newService, name_service: e.target.value })
+          <DialogContent>
+            <TextField
+              select
+              label="Product"
+              fullWidth
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              sx={{
+                mt: "20px",
+              }}
+            >
+              {products.map((product) => (
+                <MenuItem key={product.id_product} value={product.id_product}>
+                  {product.name_product}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              type="number"
+              label="Quantity"
+              fullWidth
+              value={quantity}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (!isNaN(value) && value >= 1) {
+                  setQuantity(e.target.value);
                 }
-                fullWidth
-                sx={{
-                  marginTop: "5px",
-                }}
+              }}
+              disabled={!selectedProduct}
+              sx={{
+                mt: "20px",
+              }}
+            />
+            <TextField
+              disabled
+              label="Price"
+              fullWidth
+              value={totalExpense}
+              onChange={(e) => setTotalExpense(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">Rp.</InputAdornment>
+                ),
+              }}
+              sx={{
+                mt: "20px",
+              }}
+            />
+            <DatePickerWrapper
+              sx={{
+                mt: "20px",
+              }}
+            >
+              <DatePicker
+                customInput={<CustomInput />}
+                selected={issuedDate}
+                onChange={(date) => setIssuedDate(date)}
+                dateFormat="dd MMM yyyy"
+                placeholderText="Select Issued Date"
+                showYearDropdown
+                scrollableYearDropdown
+                yearDropdownItemNumber={10}
               />
-              <TextField
-                label="Service Price"
-                value={newService.price_service}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  if (
-                    inputValue === "" ||
-                    (!isNaN(inputValue) && inputValue > 0)
-                  ) {
-                    setNewService({
-                      ...newService,
-                      price_service: inputValue,
-                    });
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">Rp.</InputAdornment>
-                  ),
-                }}
-                type="number"
-                fullWidth
-                sx={{
-                  marginTop: "10px",
-                }}
-              />
-            </form>
+            </DatePickerWrapper>
           </DialogContent>
           <DialogActions>
             <Button
-              onClick={() => setAddServiceDialogOpen(false)}
+              onClick={() => setAddExpenseDialogOpen(false)}
               color="secondary"
               variant="contained"
               sx={{
@@ -444,9 +547,7 @@ const TableExpenses = () => {
               CANCEL
             </Button>
             <Button
-              onClick={() => {
-                addNewService();
-              }}
+              onClick={handleAddExpense}
               color="primary"
               variant="contained"
               sx={{
@@ -459,7 +560,7 @@ const TableExpenses = () => {
             >
               ADD
             </Button>
-          </DialogActions> */}
+          </DialogActions>
         </Dialog>
         <DataGrid
           getRowHeight={() => "auto"}
